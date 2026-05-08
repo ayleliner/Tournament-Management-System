@@ -2,7 +2,8 @@ public class Main {
 
     public static void main(String[] args) {
         System.out.println("+------------------------------------------+");
-        System.out.println("║   TOURNAMENT MANAGEMENT SYSTEM v1.0      ║");
+        System.out.println("║    TOURNAMENT MANAGEMENT SYSTEM v1.0     ║");
+        System.out.println("║    (just a beta test -Ayleliner)         ║");
         System.out.println("║   Connecting to database...              ║");
         System.out.println("+------------------------------------------+");
 
@@ -19,7 +20,7 @@ public class Main {
         boolean running = true;
         while (running) {
             printMainMenu();
-            int choice = InputHelper.getIntInRange("Enter choice: ", 1, 4);
+            int choice = InputHelper.getIntInRange("enter choice n-word: ", 1, 4);
 
             switch (choice) {
                 case 1 -> teamsMenu();
