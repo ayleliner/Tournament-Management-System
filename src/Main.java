@@ -114,6 +114,6 @@ public class Main {
                 case 2 -> CRUDOperations.viewWinLossRecord();
                 case 3 -> back = true;
             }
-        }
+        }x
     }
 }
