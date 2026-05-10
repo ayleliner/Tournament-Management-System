@@ -27,7 +27,7 @@ public class CRUDOperations {
     }
 
     public static void viewAllTeams() {
-        String sql = "SELECT * FROM teams ORDER BY name";
+        String sql = "SELECT * FROM teams ORDER BY id";
         Connection conn = null;
         try {
             conn = DBConnection.getConnection();
