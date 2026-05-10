@@ -27,7 +27,7 @@ public class CRUDOperations {
     }
 
     public static void viewAllTeams() {
-        String sql = "SELECT * FROM teams ORDER BY name";
+        String sql = "SELECT * FROM teams ORDER BY id";
         Connection conn = null;
         try {
             conn = DBConnection.getConnection();
@@ -110,6 +110,7 @@ public class CRUDOperations {
             if (rows > 0) {
                 conn.commit(); // COMMIT
                 System.out.println("[✓] Team deleted. " + matchesDeleted + " related match(es) also removed.");
+                renumberTeams(); // Re-sequence IDs to stay 1,2,3...
             } else {
                 conn.rollback(); // ROLLBACK
                 System.out.println("[!] Team ID not found. No changes made.");
@@ -117,6 +118,57 @@ public class CRUDOperations {
         } catch (SQLException e) {
             try { if (conn != null) conn.rollback(); } catch (SQLException ex) {}
             System.out.println("[ERROR] " + e.getMessage());
+        } finally {
+            try { if (conn != null) conn.setAutoCommit(true); } catch (SQLException e) {}
+            DBConnection.closeConnection(conn);
+        }
+    }
+
+    // Re-sequences team IDs to be 1, 2, 3... after a deletion.
+    // Also updates any match foreign keys so nothing breaks.
+    private static void renumberTeams() {
+        Connection conn = null;
+        try {
+            conn = DBConnection.getConnection();
+            conn.setAutoCommit(false);
+
+            // Temporarily disable FK checks so we can freely reassign IDs
+            conn.createStatement().execute("SET FOREIGN_KEY_CHECKS = 0");
+
+            // Get all current team IDs in order
+            ResultSet rs = conn.createStatement().executeQuery("SELECT id FROM teams ORDER BY id");
+            java.util.List<Integer> oldIds = new java.util.ArrayList<>();
+            while (rs.next()) oldIds.add(rs.getInt("id"));
+
+            // Assign new sequential IDs starting from 1
+            int newId = 1;
+            for (int oldId : oldIds) {
+                if (oldId != newId) {
+                    // Update matches references first
+                    PreparedStatement pm1 = conn.prepareStatement(
+                        "UPDATE matches SET team1_id = ? WHERE team1_id = ?");
+                    pm1.setInt(1, newId); pm1.setInt(2, oldId); pm1.executeUpdate();
+
+                    PreparedStatement pm2 = conn.prepareStatement(
+                        "UPDATE matches SET team2_id = ? WHERE team2_id = ?");
+                    pm2.setInt(1, newId); pm2.setInt(2, oldId); pm2.executeUpdate();
+
+                    // Update the team ID itself
+                    PreparedStatement pt = conn.prepareStatement(
+                        "UPDATE teams SET id = ? WHERE id = ?");
+                    pt.setInt(1, newId); pt.setInt(2, oldId); pt.executeUpdate();
+                }
+                newId++;
+            }
+
+            // Reset AUTO_INCREMENT to the next available number
+            conn.createStatement().execute("ALTER TABLE teams AUTO_INCREMENT = " + newId);
+
+            conn.createStatement().execute("SET FOREIGN_KEY_CHECKS = 1");
+            conn.commit();
+        } catch (SQLException e) {
+            try { if (conn != null) conn.rollback(); } catch (SQLException ex) {}
+            System.out.println("[ERROR] Failed to renumber teams: " + e.getMessage());
         } finally {
             try { if (conn != null) conn.setAutoCommit(true); } catch (SQLException e) {}
             DBConnection.closeConnection(conn);
@@ -272,7 +324,12 @@ public class CRUDOperations {
     
 
     public static void viewRankings() {
-        int year = InputHelper.getYear("Enter year for rankings (or 0 for all-time)");
+        int year;
+        while (true) {
+            year = InputHelper.getInt("Enter year for rankings (or 0 for all-time): ");
+            if (year == 0 || (year >= 2000 && year <= 2100)) break;
+            System.out.println("[!] Please enter a valid year (2000-2100) or 0 for all-time.");
+        }
 
         String sql =
             "SELECT t.name, " +
