@@ -72,4 +72,12 @@ public class InputHelper {
             System.out.println("[!] Invalid result. Please enter WIN, DRAW, or LOSS only.");
         }
     }
+    
+    public static String getNonEmptyString(String prompt) {
+        while (true) {
+            String input = getString(prompt);
+            if (!input.isEmpty()) return input;
+            System.out.println("[!] Input cannot be empty. Please enter a valid value.");
+        }
+    }
 }
