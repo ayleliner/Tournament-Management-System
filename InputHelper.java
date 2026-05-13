@@ -63,4 +63,13 @@ public class InputHelper {
             System.out.println("[!] Score cannot be negative. Please enter 0 or higher.");
         }
     }
+    
+    public static String getResult(String prompt) {
+        while (true) {
+            System.out.print(prompt + " (WIN/DRAW/LOSS): ");
+            String input = sc.nextLine().trim().toUpperCase();
+            if (input.equals("WIN") || input.equals("DRAW") || input.equals("LOSS")) return input;
+            System.out.println("[!] Invalid result. Please enter WIN, DRAW, or LOSS only.");
+        }
+    }
 }
