@@ -55,4 +55,12 @@ public class InputHelper {
             System.out.println("[!] Type 'yes' or 'no'.");
         }
     }
+    
+    public static int getScore(String prompt) {
+        while (true) {
+            int score = getInt(prompt);
+            if (score >= 0) return score;
+            System.out.println("[!] Score cannot be negative. Please enter 0 or higher.");
+        }
+    }
 }
