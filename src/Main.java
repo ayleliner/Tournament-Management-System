@@ -27,7 +27,7 @@ public class Main {
                 case 2 -> matchesMenu();
                 case 3 -> statsMenu();
                 case 4 -> {
-                    System.out.println("\nokay goodbye! -Ayleliner");
+                    System.out.println("\nokay Goodbye! Thanks for testing our tournament system. -Ayleliner");
                     running = false;
                 }
             }

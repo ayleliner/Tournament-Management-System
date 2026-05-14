@@ -29,10 +29,12 @@ public class CRUDOperations {
     public static void viewAllTeams() {
         String sql = "SELECT * FROM teams ORDER BY id";
         Connection conn = null;
+        PreparedStatement ps = null;
+        ResultSet rs = null;
         try {
             conn = DBConnection.getConnection();
-            PreparedStatement ps = conn.prepareStatement(sql);
-            ResultSet rs = ps.executeQuery();
+            ps = conn.prepareStatement(sql);
+            rs = ps.executeQuery();
 
             System.out.println("\n╔══════════════════════════════════════╗");
             System.out.println("║           REGISTERED TEAMS           ║");
@@ -53,6 +55,8 @@ public class CRUDOperations {
         } catch (SQLException e) {
             System.out.println("[ERROR] " + e.getMessage());
         } finally {
+            try { if (rs != null) rs.close(); } catch (SQLException e) {}
+            try { if (ps != null) ps.close(); } catch (SQLException e) {}
             DBConnection.closeConnection(conn);
         }
     }
@@ -64,9 +68,10 @@ public class CRUDOperations {
 
         String sql = "UPDATE teams SET name = ? WHERE id = ?";
         Connection conn = null;
+        PreparedStatement ps = null;
         try {
             conn = DBConnection.getConnection();
-            PreparedStatement ps = conn.prepareStatement(sql);
+            ps = conn.prepareStatement(sql);
             ps.setString(1, newName);
             ps.setInt(2, id);
             int rows = ps.executeUpdate();
@@ -77,6 +82,7 @@ public class CRUDOperations {
         } catch (SQLException e) {
             System.out.println("[ERROR] " + e.getMessage());
         } finally {
+            try { if (ps != null) ps.close(); } catch (SQLException e) {}
             DBConnection.closeConnection(conn);
         }
     }
@@ -128,48 +134,46 @@ public class CRUDOperations {
     // Also updates any match foreign keys so nothing breaks.
     private static void renumberTeams() {
         Connection conn = null;
+        Statement st = null;
         try {
             conn = DBConnection.getConnection();
             conn.setAutoCommit(false);
 
-            // Temporarily disable FK checks so we can freely reassign IDs
-            conn.createStatement().execute("SET FOREIGN_KEY_CHECKS = 0");
+            st = conn.createStatement();
+            st.execute("SET FOREIGN_KEY_CHECKS = 0");
 
-            // Get all current team IDs in order
-            ResultSet rs = conn.createStatement().executeQuery("SELECT id FROM teams ORDER BY id");
+            ResultSet rs = st.executeQuery("SELECT id FROM teams ORDER BY id");
             java.util.List<Integer> oldIds = new java.util.ArrayList<>();
             while (rs.next()) oldIds.add(rs.getInt("id"));
+            rs.close();
 
-            // Assign new sequential IDs starting from 1
             int newId = 1;
             for (int oldId : oldIds) {
                 if (oldId != newId) {
-                    // Update matches references first
                     PreparedStatement pm1 = conn.prepareStatement(
                         "UPDATE matches SET team1_id = ? WHERE team1_id = ?");
-                    pm1.setInt(1, newId); pm1.setInt(2, oldId); pm1.executeUpdate();
+                    pm1.setInt(1, newId); pm1.setInt(2, oldId); pm1.executeUpdate(); pm1.close();
 
                     PreparedStatement pm2 = conn.prepareStatement(
                         "UPDATE matches SET team2_id = ? WHERE team2_id = ?");
-                    pm2.setInt(1, newId); pm2.setInt(2, oldId); pm2.executeUpdate();
+                    pm2.setInt(1, newId); pm2.setInt(2, oldId); pm2.executeUpdate(); pm2.close();
 
-                    // Update the team ID itself
                     PreparedStatement pt = conn.prepareStatement(
                         "UPDATE teams SET id = ? WHERE id = ?");
-                    pt.setInt(1, newId); pt.setInt(2, oldId); pt.executeUpdate();
+                    pt.setInt(1, newId); pt.setInt(2, oldId); pt.executeUpdate(); pt.close();
                 }
                 newId++;
             }
 
-            // Reset AUTO_INCREMENT to the next available number
-            conn.createStatement().execute("ALTER TABLE teams AUTO_INCREMENT = " + newId);
-
-            conn.createStatement().execute("SET FOREIGN_KEY_CHECKS = 1");
+            st.execute("ALTER TABLE teams AUTO_INCREMENT = " + newId);
+            st.execute("SET FOREIGN_KEY_CHECKS = 1");
+            st.close();
             conn.commit();
         } catch (SQLException e) {
             try { if (conn != null) conn.rollback(); } catch (SQLException ex) {}
             System.out.println("[ERROR] Failed to renumber teams: " + e.getMessage());
         } finally {
+            try { if (st != null) st.close(); } catch (SQLException e) {}
             try { if (conn != null) conn.setAutoCommit(true); } catch (SQLException e) {}
             DBConnection.closeConnection(conn);
         }

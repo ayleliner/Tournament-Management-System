@@ -55,4 +55,29 @@ public class InputHelper {
             System.out.println("[!] Type 'yes' or 'no'.");
         }
     }
+    
+    public static int getScore(String prompt) {
+        while (true) {
+            int score = getInt(prompt);
+            if (score >= 0) return score;
+            System.out.println("[!] Score cannot be negative. Please enter 0 or higher.");
+        }
+    }
+    
+    public static String getResult(String prompt) {
+        while (true) {
+            System.out.print(prompt + " (WIN/DRAW/LOSS): ");
+            String input = sc.nextLine().trim().toUpperCase();
+            if (input.equals("WIN") || input.equals("DRAW") || input.equals("LOSS")) return input;
+            System.out.println("[!] Invalid result bro, Please enter WIN, DRAW, or LOSS only.");
+        }
+    }
+    
+    public static String getNonEmptyString(String prompt) {
+        while (true) {
+            String input = getString(prompt);
+            if (!input.isEmpty()) return input;
+            System.out.println("[!] Input cannot be empty. Please enter a valid value.");
+        }
+    }
 }
