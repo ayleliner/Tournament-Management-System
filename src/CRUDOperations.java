@@ -6,6 +6,10 @@ public class CRUDOperations {
 
     public static void addTeam() {
         String name = InputHelper.getString("Enter team name: ");
+        if (name.trim().isEmpty()) {
+            System.out.println("[!] Team name cannot be empty or blank.");
+            return;
+        }   
         String date = InputHelper.getDate("Enter registration date");
 
         String sql = "INSERT INTO teams (name, created_at) VALUES (?, ?)";
@@ -192,8 +196,37 @@ public class CRUDOperations {
             System.out.println("[!] A team cannot play against itself.");
             return;
         }
+        
+        // Check for duplicate match
+        String checkSql = "SELECT COUNT(*) FROM matches WHERE (team1_id = ? AND team2_id = ?) OR (team1_id = ? AND team2_id = ?)";
+        Connection checkConn = null;
+        try {
+            checkConn = DBConnection.getConnection();
+            PreparedStatement checkPs = checkConn.prepareStatement(checkSql);
+            checkPs.setInt(1, team1);
+            checkPs.setInt(2, team2);
+            checkPs.setInt(3, team2);
+            checkPs.setInt(4, team1);
+            ResultSet checkRs = checkPs.executeQuery();
+            if (checkRs.next() && checkRs.getInt(1) > 0) {
+               System.out.println("[!] This match between these two teams already exists.");
+               return;
+            }
+    } catch (SQLException e) {
+        System.out.println("[ERROR] " + e.getMessage());
+    } finally {
+        DBConnection.closeConnection(checkConn);
+    }
 
         String date = InputHelper.getDate("Enter match date");
+      
+        // Validate match date is not in the past
+        java.time.LocalDate matchDate = java.time.LocalDate.parse(date);
+        if (matchDate.isBefore(java.time.LocalDate.now())) {
+           System.out.println("[!] Match date cannot be in the past.");
+           return;
+        }
+
         int year    = Integer.parseInt(date.substring(0, 4));
 
         String sql = "INSERT INTO matches (team1_id, team2_id, match_date, match_year, status) VALUES (?, ?, ?, ?, 'scheduled')";
@@ -278,6 +311,25 @@ public class CRUDOperations {
     public static void updateMatchScore() {
         viewMatches();
         int matchId = InputHelper.getInt("\nEnter Match ID to update score: ");
+
+        // Check if match is already completed
+        String checkSql = "SELECT status FROM matches WHERE id = ?";
+        Connection checkConn = null;
+        try {
+            checkConn = DBConnection.getConnection();
+            PreparedStatement checkPs = checkConn.prepareStatement(checkSql);
+            checkPs.setInt(1, matchId);
+            ResultSet checkRs = checkPs.executeQuery();
+            if (checkRs.next() && checkRs.getString("status").equals("completed")) {
+               System.out.println("[!] This match is already completed. Score cannot be overwritten.");
+               return;
+            }
+        } catch (SQLException e) {
+            System.out.println("[ERROR] " + e.getMessage());
+        } finally {
+            DBConnection.closeConnection(checkConn);
+        }
+
         int score1  = InputHelper.getInt("Enter Team 1 score: ");
         int score2  = InputHelper.getInt("Enter Team 2 score: ");
 
@@ -439,7 +491,7 @@ public class CRUDOperations {
             }
             System.out.println("  ─────────────────────────────────────────────────────");
             System.out.printf("  TOTAL →  Wins: %d | Losses: %d | Draws: %d%n", wins, losses, draws);
-        } catch (SQLException e) {
+        } catch (SQLException e) {	
             System.out.println("[ERROR] " + e.getMessage());
         } finally {
             DBConnection.closeConnection(conn);
