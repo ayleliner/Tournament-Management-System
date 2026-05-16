@@ -196,6 +196,27 @@ public class CRUDOperations {
             System.out.println("[!] A team cannot play against itself.");
             return;
         }
+        
+        // Check for duplicate match
+        String checkSql = "SELECT COUNT(*) FROM matches WHERE (team1_id = ? AND team2_id = ?) OR (team1_id = ? AND team2_id = ?)";
+        Connection checkConn = null;
+        try {
+            checkConn = DBConnection.getConnection();
+            PreparedStatement checkPs = checkConn.prepareStatement(checkSql);
+            checkPs.setInt(1, team1);
+            checkPs.setInt(2, team2);
+            checkPs.setInt(3, team2);
+            checkPs.setInt(4, team1);
+            ResultSet checkRs = checkPs.executeQuery();
+            if (checkRs.next() && checkRs.getInt(1) > 0) {
+               System.out.println("[!] This match between these two teams already exists.");
+               return;
+            }
+    } catch (SQLException e) {
+        System.out.println("[ERROR] " + e.getMessage());
+    } finally {
+        DBConnection.closeConnection(checkConn);
+    }
 
         String date = InputHelper.getDate("Enter match date");
         int year    = Integer.parseInt(date.substring(0, 4));
