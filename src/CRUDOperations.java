@@ -311,6 +311,25 @@ public class CRUDOperations {
     public static void updateMatchScore() {
         viewMatches();
         int matchId = InputHelper.getInt("\nEnter Match ID to update score: ");
+
+        // Check if match is already completed
+        String checkSql = "SELECT status FROM matches WHERE id = ?";
+        Connection checkConn = null;
+        try {
+            checkConn = DBConnection.getConnection();
+            PreparedStatement checkPs = checkConn.prepareStatement(checkSql);
+            checkPs.setInt(1, matchId);
+            ResultSet checkRs = checkPs.executeQuery();
+            if (checkRs.next() && checkRs.getString("status").equals("completed")) {
+               System.out.println("[!] This match is already completed. Score cannot be overwritten.");
+               return;
+            }
+        } catch (SQLException e) {
+            System.out.println("[ERROR] " + e.getMessage());
+        } finally {
+            DBConnection.closeConnection(checkConn);
+        }
+
         int score1  = InputHelper.getInt("Enter Team 1 score: ");
         int score2  = InputHelper.getInt("Enter Team 2 score: ");
 
