@@ -219,6 +219,14 @@ public class CRUDOperations {
     }
 
         String date = InputHelper.getDate("Enter match date");
+      
+        // Validate match date is not in the past
+        java.time.LocalDate matchDate = java.time.LocalDate.parse(date);
+        if (matchDate.isBefore(java.time.LocalDate.now())) {
+           System.out.println("[!] Match date cannot be in the past.");
+           return;
+        }
+
         int year    = Integer.parseInt(date.substring(0, 4));
 
         String sql = "INSERT INTO matches (team1_id, team2_id, match_date, match_year, status) VALUES (?, ?, ?, ?, 'scheduled')";
@@ -464,7 +472,7 @@ public class CRUDOperations {
             }
             System.out.println("  ─────────────────────────────────────────────────────");
             System.out.printf("  TOTAL →  Wins: %d | Losses: %d | Draws: %d%n", wins, losses, draws);
-        } catch (SQLException e) {
+        } catch (SQLException e) {	
             System.out.println("[ERROR] " + e.getMessage());
         } finally {
             DBConnection.closeConnection(conn);
